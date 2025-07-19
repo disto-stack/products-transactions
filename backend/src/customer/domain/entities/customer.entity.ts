@@ -1,4 +1,4 @@
-  // TODO: Improve error handling
+// TODO: Improve error handling
 
 export class CustomerEntity {
   constructor(
@@ -7,6 +7,7 @@ export class CustomerEntity {
     public readonly email: string,
     public readonly phone: string,
     public readonly createdAt: Date = new Date(),
+    public readonly updatedAt: Date = new Date(),
   ) {
     this.validateEmail(email);
     this.validateName(name);
@@ -25,7 +26,7 @@ export class CustomerEntity {
     }
   }
 
-  private validateName(name: string): void { 
+  private validateName(name: string): void {
     if (name.length === 0) {
       throw new Error('Name cannot be empty');
     }
