@@ -1,5 +1,3 @@
-// TODO: Improve error handling
-
 export class CustomerEntity {
   constructor(
     public readonly id: string,
@@ -37,8 +35,9 @@ export class CustomerEntity {
       throw new Error('Phone cannot be empty');
     }
 
-    const phoneRegex = /^(\+?57)?3(0(0|1|2|4|5)|1\d|2[0-4]|5(0|1))\d{7}$/;
+    const phoneRegex = /3[0-9]{9}/;
     const testPhone = phoneRegex.test(phone);
+
     if (!testPhone) {
       throw new Error('Invalid phone format');
     }

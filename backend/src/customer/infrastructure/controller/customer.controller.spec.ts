@@ -1,16 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { CustomerController } from './customer.controller';
 import { CheckCustomerExistsUseCase } from '../../application/use-cases/check-customer-exists.use-case';
-import { CustomerEntity } from '../../domain/entities/customer.entity';
-import { CheckCustomertExistsDto } from '../../application/dto/check-customer-exists.dto';
+import { success, failure } from '../../../shared/result';
+import { 
+  RepositoryError, 
+  BusinessRuleError, 
+  UnexpectedError 
+} from '../../application/errors/check-customers-errors';
+import { CheckCustomerExistsResponseDto } from 'src/customer/application/dto/check-customer-exists-response.dto';
 
 describe('CustomerController', () => {
   let controller: CustomerController;
-  let mockCheckCustomerExistsUseCase: jest.Mocked<CheckCustomerExistsUseCase>;
+  let mockUseCase: jest.Mocked<CheckCustomerExistsUseCase>;
 
   beforeEach(async () => {
-    mockCheckCustomerExistsUseCase = {
+    mockUseCase = {
       execute: jest.fn(),
     } as any;
 
@@ -19,7 +24,7 @@ describe('CustomerController', () => {
       providers: [
         {
           provide: CheckCustomerExistsUseCase,
-          useValue: mockCheckCustomerExistsUseCase,
+          useValue: mockUseCase,
         },
       ],
     }).compile();
@@ -31,53 +36,47 @@ describe('CustomerController', () => {
     jest.clearAllMocks();
   });
 
-  describe('init', () => {
-    it('should be defined', () => {
-      expect(controller).toBeDefined();
-    });
-
-    it('should have CheckCustomerExistsUseCase injected', () => {
-      expect(mockCheckCustomerExistsUseCase).toBeDefined();
-    });
-  });
-
-  describe('checkExists', () => {
-    const validDto: CheckCustomertExistsDto = {
-      email: 'juan@example.com',
-    };
-
-    const mockCustomer = new CustomerEntity(
-      '123e4567-e89b-12d3-a456-426614174000',
-      'Juan Carlos',
-      'juan@example.com',
-      '+573001234567',
-      new Date('2024-01-15T10:00:00.000Z'),
-    );
-
+  describe('checkCustomerExists - success cases', () => {
     it('should return success response when customer exists', async () => {
-      mockCheckCustomerExistsUseCase.execute.mockResolvedValue(mockCustomer);
+      const customerDto = {
+        id: '123',
+        name: 'Juan Pérez',
+        email: 'juan@example.com',
+        createdAt: '2024-01-01T00:00:00.000Z',
+      };
+      
+      const responseDto: CheckCustomerExistsResponseDto = {
+        exists: true,
+        customer: customerDto,
+      };
 
-      const result = await controller.checkExists(validDto);
+      mockUseCase.execute.mockResolvedValue(success(responseDto));
+
+      const result = await controller.checkCustomerExists({ email: 'juan@example.com' });
 
       expect(result).toEqual({
         success: true,
         data: {
           exists: true,
-          customer: mockCustomer,
+          customer: customerDto,
         },
-        message: 'Customer found',
       });
 
-      expect(mockCheckCustomerExistsUseCase.execute).toHaveBeenCalledWith(
-        validDto,
-      );
-      expect(mockCheckCustomerExistsUseCase.execute).toHaveBeenCalledTimes(1);
+      expect(mockUseCase.execute).toHaveBeenCalledWith({ 
+        email: 'juan@example.com' 
+      });
+      expect(mockUseCase.execute).toHaveBeenCalledTimes(1);
     });
 
     it('should return success response when customer does not exist', async () => {
-      mockCheckCustomerExistsUseCase.execute.mockResolvedValue(null);
+      const responseDto: CheckCustomerExistsResponseDto = {
+        exists: false,
+        customer: null,
+      };
 
-      const result = await controller.checkExists(validDto);
+      mockUseCase.execute.mockResolvedValue(success(responseDto));
+
+      const result = await controller.checkCustomerExists({ email: 'noexiste@example.com' });
 
       expect(result).toEqual({
         success: true,
@@ -85,44 +84,88 @@ describe('CustomerController', () => {
           exists: false,
           customer: null,
         },
-        message: 'Customer not found',
       });
 
-      expect(mockCheckCustomerExistsUseCase.execute).toHaveBeenCalledWith(
-        validDto,
-      );
+      expect(mockUseCase.execute).toHaveBeenCalledWith({ 
+        email: 'noexiste@example.com' 
+      });
+    });
+  });
+
+  describe('checkCustomerExists - error cases', () => {
+    it('should throw BadRequestException for business rule errors', async () => {
+      const businessError = new BusinessRuleError('Invalid email format');
+      mockUseCase.execute.mockResolvedValue(failure(businessError));
+
+      await expect(
+        controller.checkCustomerExists({ email: 'invalid-email' })
+      ).rejects.toThrow(BadRequestException);
+
+      try {
+        await controller.checkCustomerExists({ email: 'invalid-email' });
+        fail('Should have thrown BadRequestException');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error.response).toMatchObject({
+          success: false,
+          error: {
+            type: 'BUSINESS_RULE_ERROR',
+            message: 'Invalid email format',
+            timestamp: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
+          },
+        });
+      }
     });
 
-    it('should throw HttpException when use case throws error', async () => {
-      const errorMessage = 'Database connection failed';
-      mockCheckCustomerExistsUseCase.execute.mockRejectedValue(
-        new Error(errorMessage),
-      );
+    it('should throw InternalServerErrorException for repository errors', async () => {
+      const repositoryError = new RepositoryError('Database connection failed');
+      mockUseCase.execute.mockResolvedValue(failure(repositoryError));
 
-      await expect(controller.checkExists(validDto)).rejects.toThrow(
-        new HttpException(errorMessage, HttpStatus.BAD_REQUEST),
-      );
+      await expect(
+        controller.checkCustomerExists({ email: 'juan@example.com' })
+      ).rejects.toThrow(InternalServerErrorException);
 
-      expect(mockCheckCustomerExistsUseCase.execute).toHaveBeenCalledWith(
-        validDto,
-      );
+      try {
+        await controller.checkCustomerExists({ email: 'juan@example.com' });
+        fail('Should have thrown InternalServerErrorException');
+      } catch (error) {
+        expect(error).toBeInstanceOf(InternalServerErrorException);
+        expect(error.response).toMatchObject({
+          success: false,
+          error: {
+            type: 'INTERNAL_ERROR',
+            message: 'An internal error occurred while processing your request',
+            timestamp: expect.any(String),
+          },
+        });
+        
+        expect(error.response.error.message).not.toContain('Database connection failed');
+        expect(error.response.error.message).not.toContain('repository');
+        expect(error.response.error.message).not.toContain('SQL');
+      }
     });
 
-    it('should handle non-Error exceptions gracefully', async () => {
-      mockCheckCustomerExistsUseCase.execute.mockRejectedValue('String error');
+    it('should throw InternalServerErrorException for unexpected errors', async () => {
+      const unexpectedError = new UnexpectedError('Something went wrong');
+      mockUseCase.execute.mockResolvedValue(failure(unexpectedError));
 
-      await expect(controller.checkExists(validDto)).rejects.toThrow(
-        new HttpException('Internal server error', HttpStatus.BAD_REQUEST),
-      );
-    });
+      await expect(
+        controller.checkCustomerExists({ email: 'juan@example.com' })
+      ).rejects.toThrow(InternalServerErrorException);
 
-    it('should handle Error instances correctly', async () => {
-      const customError = new Error('Custom validation error');
-      mockCheckCustomerExistsUseCase.execute.mockRejectedValue(customError);
-
-      await expect(controller.checkExists(validDto)).rejects.toThrow(
-        new HttpException('Custom validation error', HttpStatus.BAD_REQUEST),
-      );
+      try {
+        await controller.checkCustomerExists({ email: 'juan@example.com' });
+        fail('Should have thrown InternalServerErrorException');
+      } catch (error) {
+        expect(error.response).toMatchObject({
+          success: false,
+          error: {
+            type: 'INTERNAL_ERROR',
+            message: 'An unexpected error occurred',
+            timestamp: expect.any(String),
+          },
+        });
+      }
     });
   });
 });
