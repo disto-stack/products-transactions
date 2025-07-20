@@ -26,7 +26,7 @@ describe('CustomerEntity', () => {
         'user123@domain.co.uk',
       ];
 
-      validEmails.forEach(email => {
+      validEmails.forEach((email) => {
         expect(() => {
           new CustomerEntity('1', 'Test User', email, '3007304451');
         }).not.toThrow();
@@ -42,7 +42,7 @@ describe('CustomerEntity', () => {
         '',
       ];
 
-      invalidEmails.forEach(email => {
+      invalidEmails.forEach((email) => {
         expect(() => {
           new CustomerEntity('1', 'Test User', email, '3007304451');
         }).toThrow();
@@ -61,10 +61,9 @@ describe('CustomerEntity', () => {
         '3126789054',
         '3450765987',
         '3235678901',
-
       ];
 
-      validPhones.forEach(phone => {
+      validPhones.forEach((phone) => {
         expect(() => {
           new CustomerEntity('1', 'Test User', 'juan@example.com', phone);
         }).not.toThrow();
@@ -72,14 +71,9 @@ describe('CustomerEntity', () => {
     });
 
     it('should reject invalid phone format', () => {
-      const validPhones = [
-        '12344657',
-        '6   ',
-        'notNumber',
-        '5678999',
-      ];
+      const validPhones = ['12344657', '6   ', 'notNumber', '5678999'];
 
-      validPhones.forEach(phone => {
+      validPhones.forEach((phone) => {
         expect(() => {
           new CustomerEntity('1', 'Test User', 'juan@example.com', phone);
         }).toThrow();
@@ -89,7 +83,12 @@ describe('CustomerEntity', () => {
 
   describe('updateInfo', () => {
     it('should update name and phone', () => {
-      const customer = new CustomerEntity('1', 'Juan Pérez', 'juan@example.com', '3007304451');
+      const customer = new CustomerEntity(
+        '1',
+        'Juan Pérez',
+        'juan@example.com',
+        '3007304451',
+      );
       const updatedCustomer = customer.updateInfo('Juan Updated', '3001234567');
 
       expect(updatedCustomer.name).toBe('Juan Updated');
@@ -98,7 +97,12 @@ describe('CustomerEntity', () => {
     });
 
     it('should update name', () => {
-      const customer = new CustomerEntity('1', 'Juan Pérez', 'juan@example.com', '3007304451');
+      const customer = new CustomerEntity(
+        '1',
+        'Juan Pérez',
+        'juan@example.com',
+        '3007304451',
+      );
       const updatedCustomer = customer.updateInfo('Juan Updated');
 
       expect(updatedCustomer.name).toBe('Juan Updated');
@@ -107,13 +111,17 @@ describe('CustomerEntity', () => {
     });
 
     it('should update phone', () => {
-      const customer = new CustomerEntity('1', 'Juan Pérez', 'juan@example.com', '3007304451');
+      const customer = new CustomerEntity(
+        '1',
+        'Juan Pérez',
+        'juan@example.com',
+        '3007304451',
+      );
       const updatedCustomer = customer.updateInfo(undefined, '3001234567');
 
       expect(updatedCustomer.name).toBe('Juan Pérez');
       expect(updatedCustomer.phone).toBe('3001234567');
       expect(updatedCustomer.email).toBe(customer.email);
     });
-
   });
 });

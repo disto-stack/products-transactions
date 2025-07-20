@@ -3,12 +3,18 @@ import { CustomerEntity } from '../../domain/entities/customer.entity';
 import { CustomerRepository } from '../../domain/ports/customer.repository';
 import { CheckCustomertExistsDto } from '../dto/check-customer-exists.dto';
 import { failure, Result, success } from '../../../shared/result';
-import {
-  CheckCustomerErrorType,
-  RepositoryError,
-} from '../errors/check-customers-errors';
 import { CustomerDto } from '../dto/customer-response.dto';
 import { CheckCustomerExistsResponseDto } from '../dto/check-customer-exists-response.dto';
+import {
+  BusinessRuleError,
+  RepositoryError,
+  UnexpectedError,
+} from '../../../shared/errors/application.errors';
+
+export type CheckCustomerErrorType =
+  | BusinessRuleError
+  | RepositoryError
+  | UnexpectedError;
 
 @Injectable()
 export class CheckCustomerExistsUseCase {

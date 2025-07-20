@@ -94,3 +94,10 @@ export function success<T>(value: T): Success<T> {
 export function failure<E>(error: E): Failure<E> {
   return new Failure(error);
 }
+
+export function fromNullable<T, E>(
+  value: T | null | undefined,
+  errorFactory: () => E,
+): Result<T, E> {
+  return value != null ? success(value) : failure(errorFactory());
+}

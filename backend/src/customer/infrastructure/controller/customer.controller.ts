@@ -4,11 +4,18 @@ import {
   Param,
   BadRequestException,
   InternalServerErrorException,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
-import { CheckCustomerExistsUseCase } from '../../application/use-cases/check-customer-exists.use-case';
-import { CheckCustomerErrorType } from '../../application/errors/check-customers-errors';
+import {
+  CheckCustomerExistsUseCase,
+  CheckCustomerErrorType,
+} from '../../application/use-cases/check-customer-exists.use-case';
 import { CheckCustomertExistsDto } from '../../application/dto/check-customer-exists.dto';
+import {
+  BusinessRuleError,
+  RepositoryError,
+} from '../../../shared/errors/application.errors';
 
 export interface CheckCustomerSuccessResponse {
   success: true;
@@ -51,7 +58,7 @@ export class CustomerController {
     example: 'juan@example.com',
   })
   @ApiResponse({
-    status: 200,
+    status: HttpStatus.OK,
     description: 'Customer check completed successfully',
     schema: {
       type: 'object',
@@ -76,7 +83,7 @@ export class CustomerController {
     },
   })
   @ApiResponse({
-    status: 400,
+    status: HttpStatus.BAD_REQUEST,
     description: 'Business rule validation failed',
     schema: {
       type: 'object',
@@ -94,7 +101,7 @@ export class CustomerController {
     },
   })
   @ApiResponse({
-    status: 500,
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: 'Internal server error',
   })
   async checkCustomerExists(
@@ -118,48 +125,32 @@ export class CustomerController {
   }
 
   private handleError(error: CheckCustomerErrorType): never {
-    const timestamp = new Date().toISOString();
-
-    switch (error.type) {
-      case 'BUSINESS_RULE_ERROR':
-        throw new BadRequestException({
-          success: false,
-          error: {
-            type: error.type,
-            message: error.message,
-            timestamp,
-          },
-        });
-
-      case 'REPOSITORY_ERROR':
-        throw new InternalServerErrorException({
-          success: false,
-          error: {
-            type: 'INTERNAL_ERROR',
-            message: 'An internal error occurred while processing your request',
-            timestamp,
-          },
-        });
-
-      case 'UNEXPECTED_ERROR':
-        throw new InternalServerErrorException({
-          success: false,
-          error: {
-            type: 'INTERNAL_ERROR',
-            message: 'An unexpected error occurred',
-            timestamp,
-          },
-        });
-
-      default:
-        throw new InternalServerErrorException({
-          success: false,
-          error: {
-            type: 'INTERNAL_ERROR',
-            message: 'Unknown error type',
-            timestamp,
-          },
-        });
+    if (error instanceof BusinessRuleError) {
+      throw new BadRequestException({
+        success: false,
+        error: {
+          type: 'BUSINESS_RULE_ERROR',
+          message: error.message,
+        },
+      });
     }
+
+    if (error instanceof RepositoryError) {
+      throw new InternalServerErrorException({
+        success: false,
+        error: {
+          type: 'INTERNAL_ERROR',
+          message: 'An internal error occurred while processing your request',
+        },
+      });
+    }
+
+    throw new InternalServerErrorException({
+      success: false,
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'An unexpected error occurred',
+      },
+    });
   }
 }

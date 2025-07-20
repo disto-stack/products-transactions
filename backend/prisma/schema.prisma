@@ -17,3 +17,27 @@ model Customer {
 
   @@map("customers")
 }
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  price       Int   
+  image       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  stock Stock?
+
+  @@map("products")
+}
+
+model Stock {
+  productId String   @id @unique @map("product_id")
+  quantity  Int
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("stocks")
+}

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CheckCustomerExistsUseCase } from './check-customer-exists.use-case';
 import { CustomerRepository } from '../../domain/ports/customer.repository';
 import { CustomerEntity } from '../../domain/entities/customer.entity';
-import { RepositoryError } from '../errors/check-customers-errors';
+import { RepositoryError } from '../../../shared/errors/application.errors';
 
 describe('CheckCustomerExistsUseCase', () => {
   let useCase: CheckCustomerExistsUseCase;
@@ -23,7 +23,9 @@ describe('CheckCustomerExistsUseCase', () => {
       ],
     }).compile();
 
-    useCase = module.get<CheckCustomerExistsUseCase>(CheckCustomerExistsUseCase);
+    useCase = module.get<CheckCustomerExistsUseCase>(
+      CheckCustomerExistsUseCase,
+    );
   });
 
   afterEach(() => {
@@ -37,7 +39,7 @@ describe('CheckCustomerExistsUseCase', () => {
         'Juan Pérez',
         'juan@example.com',
         '3007304451',
-        new Date()
+        new Date(),
       );
       mockRepository.findByEmail.mockResolvedValue(customerEntity);
 
@@ -51,7 +53,9 @@ describe('CheckCustomerExistsUseCase', () => {
         expect(result.value.customer?.email).toBe('juan@example.com');
       }
 
-      expect(mockRepository.findByEmail).toHaveBeenCalledWith('juan@example.com');
+      expect(mockRepository.findByEmail).toHaveBeenCalledWith(
+        'juan@example.com',
+      );
     });
 
     it('should return success when customer does not exist', async () => {
@@ -66,7 +70,9 @@ describe('CheckCustomerExistsUseCase', () => {
         expect(result.value.customer).toBe(null);
       }
 
-      expect(mockRepository.findByEmail).toHaveBeenCalledWith('noexiste@example.com');
+      expect(mockRepository.findByEmail).toHaveBeenCalledWith(
+        'noexiste@example.com',
+      );
     });
 
     it('should normalize email correctly', async () => {
@@ -75,8 +81,14 @@ describe('CheckCustomerExistsUseCase', () => {
       await useCase.execute({ email: '  JUAN@EXAMPLE.COM  ' });
       await useCase.execute({ email: 'Maria@COMPANY.com' });
 
-      expect(mockRepository.findByEmail).toHaveBeenNthCalledWith(1, 'juan@example.com');
-      expect(mockRepository.findByEmail).toHaveBeenNthCalledWith(2, 'maria@company.com');
+      expect(mockRepository.findByEmail).toHaveBeenNthCalledWith(
+        1,
+        'juan@example.com',
+      );
+      expect(mockRepository.findByEmail).toHaveBeenNthCalledWith(
+        2,
+        'maria@company.com',
+      );
     });
   });
 
@@ -122,7 +134,7 @@ describe('CheckCustomerExistsUseCase', () => {
 
       expect(result.isFailure()).toBe(true);
       expect(buildResponseSpy).not.toHaveBeenCalled();
-      
+
       buildResponseSpy.mockRestore();
     });
 
@@ -130,8 +142,14 @@ describe('CheckCustomerExistsUseCase', () => {
       const normalizeEmailSpy = jest.spyOn(useCase as any, 'normalizeEmail');
       const findCustomerSpy = jest.spyOn(useCase as any, 'findCustomerByEmail');
       const buildResponseSpy = jest.spyOn(useCase as any, 'buildResponse');
-      
-      const customerEntity = new CustomerEntity('1', 'Juan', 'juan@example.com', '3007304451', new Date());
+
+      const customerEntity = new CustomerEntity(
+        '1',
+        'Juan',
+        'juan@example.com',
+        '3007304451',
+        new Date(),
+      );
       mockRepository.findByEmail.mockResolvedValue(customerEntity);
 
       const result = await useCase.execute({ email: 'juan@example.com' });
@@ -146,5 +164,4 @@ describe('CheckCustomerExistsUseCase', () => {
       buildResponseSpy.mockRestore();
     });
   });
-
 });

@@ -1,13 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { CustomerController } from './customer.controller';
 import { CheckCustomerExistsUseCase } from '../../application/use-cases/check-customer-exists.use-case';
 import { success, failure } from '../../../shared/result';
-import { 
-  RepositoryError, 
-  BusinessRuleError, 
-  UnexpectedError 
-} from '../../application/errors/check-customers-errors';
+import {
+  RepositoryError,
+  BusinessRuleError,
+  UnexpectedError,
+} from '../../../../src/shared/errors/application.errors';
 import { CheckCustomerExistsResponseDto } from 'src/customer/application/dto/check-customer-exists-response.dto';
 
 describe('CustomerController', () => {
@@ -44,7 +47,7 @@ describe('CustomerController', () => {
         email: 'juan@example.com',
         createdAt: '2024-01-01T00:00:00.000Z',
       };
-      
+
       const responseDto: CheckCustomerExistsResponseDto = {
         exists: true,
         customer: customerDto,
@@ -52,7 +55,9 @@ describe('CustomerController', () => {
 
       mockUseCase.execute.mockResolvedValue(success(responseDto));
 
-      const result = await controller.checkCustomerExists({ email: 'juan@example.com' });
+      const result = await controller.checkCustomerExists({
+        email: 'juan@example.com',
+      });
 
       expect(result).toEqual({
         success: true,
@@ -62,8 +67,8 @@ describe('CustomerController', () => {
         },
       });
 
-      expect(mockUseCase.execute).toHaveBeenCalledWith({ 
-        email: 'juan@example.com' 
+      expect(mockUseCase.execute).toHaveBeenCalledWith({
+        email: 'juan@example.com',
       });
       expect(mockUseCase.execute).toHaveBeenCalledTimes(1);
     });
@@ -76,7 +81,9 @@ describe('CustomerController', () => {
 
       mockUseCase.execute.mockResolvedValue(success(responseDto));
 
-      const result = await controller.checkCustomerExists({ email: 'noexiste@example.com' });
+      const result = await controller.checkCustomerExists({
+        email: 'noexiste@example.com',
+      });
 
       expect(result).toEqual({
         success: true,
@@ -86,8 +93,8 @@ describe('CustomerController', () => {
         },
       });
 
-      expect(mockUseCase.execute).toHaveBeenCalledWith({ 
-        email: 'noexiste@example.com' 
+      expect(mockUseCase.execute).toHaveBeenCalledWith({
+        email: 'noexiste@example.com',
       });
     });
   });
@@ -98,7 +105,7 @@ describe('CustomerController', () => {
       mockUseCase.execute.mockResolvedValue(failure(businessError));
 
       await expect(
-        controller.checkCustomerExists({ email: 'invalid-email' })
+        controller.checkCustomerExists({ email: 'invalid-email' }),
       ).rejects.toThrow(BadRequestException);
 
       try {
@@ -111,7 +118,6 @@ describe('CustomerController', () => {
           error: {
             type: 'BUSINESS_RULE_ERROR',
             message: 'Invalid email format',
-            timestamp: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
           },
         });
       }
@@ -122,7 +128,7 @@ describe('CustomerController', () => {
       mockUseCase.execute.mockResolvedValue(failure(repositoryError));
 
       await expect(
-        controller.checkCustomerExists({ email: 'juan@example.com' })
+        controller.checkCustomerExists({ email: 'juan@example.com' }),
       ).rejects.toThrow(InternalServerErrorException);
 
       try {
@@ -135,13 +141,8 @@ describe('CustomerController', () => {
           error: {
             type: 'INTERNAL_ERROR',
             message: 'An internal error occurred while processing your request',
-            timestamp: expect.any(String),
           },
         });
-        
-        expect(error.response.error.message).not.toContain('Database connection failed');
-        expect(error.response.error.message).not.toContain('repository');
-        expect(error.response.error.message).not.toContain('SQL');
       }
     });
 
@@ -150,7 +151,7 @@ describe('CustomerController', () => {
       mockUseCase.execute.mockResolvedValue(failure(unexpectedError));
 
       await expect(
-        controller.checkCustomerExists({ email: 'juan@example.com' })
+        controller.checkCustomerExists({ email: 'juan@example.com' }),
       ).rejects.toThrow(InternalServerErrorException);
 
       try {
@@ -162,7 +163,6 @@ describe('CustomerController', () => {
           error: {
             type: 'INTERNAL_ERROR',
             message: 'An unexpected error occurred',
-            timestamp: expect.any(String),
           },
         });
       }
