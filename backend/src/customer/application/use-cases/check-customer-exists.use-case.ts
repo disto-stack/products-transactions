@@ -9,7 +9,7 @@ import {
   BusinessRuleError,
   RepositoryError,
   UnexpectedError,
-} from '../../../shared/errors/application.errors';
+} from '../../../shared/application/errors/application.errors';
 
 export type CheckCustomerErrorType =
   | BusinessRuleError

@@ -13,7 +13,7 @@ import {
 } from '../../application/use-cases/get-product-with-stock.use-case';
 import { GetProductDto } from '../../application/dto/get-product.dto';
 import { GetProductResponseDto } from '../../application/dto/get-product-response.dto';
-import { RepositoryError } from '../../../shared/errors/application.errors';
+import { RepositoryError } from '../../../shared/application/errors/application.errors';
 import { ProductNotFoundError } from '../../application/errors/product.errors';
 
 interface ProductSuccessResponse {

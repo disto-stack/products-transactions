@@ -4,6 +4,9 @@ export class GetProductResponseDto {
   description: string;
   price: number;
   formattedPrice: string;
+  deliveryPrice: number;
+  formattedDeliveryPrice: string;
+  taxPercentage: number;
   image: string | null;
   hasImage: boolean;
   stock: {

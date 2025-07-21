@@ -10,7 +10,7 @@ import {
   RepositoryError,
   BusinessRuleError,
   UnexpectedError,
-} from '../../../../src/shared/errors/application.errors';
+} from '../../../shared/application/errors/application.errors';
 import { CheckCustomerExistsResponseDto } from 'src/customer/application/dto/check-customer-exists-response.dto';
 
 describe('CustomerController', () => {

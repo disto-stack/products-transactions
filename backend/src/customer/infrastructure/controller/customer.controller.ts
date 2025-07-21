@@ -15,7 +15,7 @@ import { CheckCustomertExistsDto } from '../../application/dto/check-customer-ex
 import {
   BusinessRuleError,
   RepositoryError,
-} from '../../../shared/errors/application.errors';
+} from '../../../shared/application/errors/application.errors';
 
 export interface CheckCustomerSuccessResponse {
   success: true;

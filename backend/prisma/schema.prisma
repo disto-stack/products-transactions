@@ -15,19 +15,25 @@ model Customer {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
+  transactions Transaction[]
+
   @@map("customers")
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  name        String
-  description String
-  price       Int   
-  image       String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  id            String   @id @default(cuid())
+  name          String
+  description   String
+  price         Int
+  taxPercentage Float    @default(0.0) @map("tax_percentage")
+  deliveryPrice Int      @default(0) @map("delivery_price")
+  image         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
 
   stock Stock?
+
+  transactions Transaction[]
 
   @@map("products")
 }
@@ -35,9 +41,39 @@ model Product {
 model Stock {
   productId String   @id @unique @map("product_id")
   quantity  Int
+  reserved  Int      @default(0)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("stocks")
+}
+
+model Transaction {
+  id              String            @id @default(cuid())
+  status          TransactionStatus
+  productId       String
+  productQuantity Int
+  totalAmount     Int
+  customerId      String
+  paymentMethod   PaymentMethod
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  product  Product  @relation(fields: [productId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@map("transactions")
+}
+
+enum TransactionStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  PSE
 }

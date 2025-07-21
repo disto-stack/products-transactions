@@ -3,7 +3,7 @@ import { GetProductWithStockUseCase } from './get-product-with-stock.use-case';
 import { ProductRepository } from '../../domain/ports/product.repository';
 import { ProductEntity } from '../../domain/entities/product.entity';
 import { StockEntity } from '../../domain/entities/stock.entity';
-import { RepositoryError } from '../../../shared/errors/application.errors';
+import { RepositoryError } from '../../../shared/application/errors/application.errors';
 import { ProductNotFoundError } from '../errors/product.errors';
 
 describe('GetProductWithStockUseCase', () => {
@@ -13,6 +13,7 @@ describe('GetProductWithStockUseCase', () => {
   beforeEach(async () => {
     mockRepository = {
       findById: jest.fn(),
+      updateStock: jest.fn(),
     } as jest.Mocked<ProductRepository>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -42,6 +43,8 @@ describe('GetProductWithStockUseCase', () => {
         'Nike shoes',
         'Test description',
         800000,
+        50000,
+        0,
         null,
         stockEntity,
       );
@@ -82,7 +85,7 @@ describe('GetProductWithStockUseCase', () => {
       }
     });
 
-    it('should return success when product exists', async () => {
+    it('should return error when product not exists', async () => {
       mockRepository.findById.mockResolvedValue(null);
 
       const result = await useCase.execute({ id: 'product-test-id' });

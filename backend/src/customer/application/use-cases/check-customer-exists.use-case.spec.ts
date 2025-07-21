@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CheckCustomerExistsUseCase } from './check-customer-exists.use-case';
 import { CustomerRepository } from '../../domain/ports/customer.repository';
 import { CustomerEntity } from '../../domain/entities/customer.entity';
-import { RepositoryError } from '../../../shared/errors/application.errors';
+import { RepositoryError } from '../../../shared/application/errors/application.errors';
 
 describe('CheckCustomerExistsUseCase', () => {
   let useCase: CheckCustomerExistsUseCase;
@@ -11,6 +11,7 @@ describe('CheckCustomerExistsUseCase', () => {
   beforeEach(async () => {
     mockRepository = {
       findByEmail: jest.fn(),
+      upsert: jest.fn(),
     } as jest.Mocked<CustomerRepository>;
 
     const module: TestingModule = await Test.createTestingModule({

@@ -7,7 +7,7 @@ import { ProductEntity } from '../../domain/entities/product.entity';
 import {
   RepositoryError,
   UnexpectedError,
-} from '../../../shared/errors/application.errors';
+} from '../../../shared/application/errors/application.errors';
 import { fromNullable } from '../../../shared/result/result';
 import { GetProductResponseDto } from '../dto/get-product-response.dto';
 import { ProductNotFoundError } from '../errors/product.errors';
@@ -47,10 +47,13 @@ export class GetProductWithStockUseCase {
       description: product.description,
       price: product.price,
       formattedPrice: product.getFormattedPrice(),
+      deliveryPrice: product.deliveryPrice,
+      formattedDeliveryPrice: product.getFormattedDeliveryPrice(),
+      taxPercentage: product.taxPercentage,
       image: product.image,
       hasImage: product.hasImage(),
       stock: {
-        quantity: product.getStockQuantity(),
+        quantity: product.getAvailableStock(),
         available: product.isAvailable(),
         outOfStock: product.isOutOfStock(),
         lastUpdated: product.getStockInfo().lastUpdated.toISOString(),

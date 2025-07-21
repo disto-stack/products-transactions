@@ -23,6 +23,7 @@ export class PrismaProductRepositoryImpl implements ProductRepository {
     const stockEntity = new StockEntity(
       productWithStock.stock.productId,
       productWithStock.stock.quantity,
+      productWithStock.stock.reserved,
       productWithStock.stock.updatedAt,
     );
 
@@ -31,11 +32,55 @@ export class PrismaProductRepositoryImpl implements ProductRepository {
       productWithStock.name,
       productWithStock.description,
       productWithStock.price,
+      productWithStock.deliveryPrice,
+      productWithStock.taxPercentage,
       productWithStock.image,
       stockEntity,
       productWithStock.createdAt,
     );
 
     return productEntity;
+  }
+
+  async updateStock(product: ProductEntity): Promise<ProductEntity> {
+    const updatedProduct = await this.prismaService.product.update({
+      where: { id: product.id },
+      data: {
+        stock: {
+          update: {
+            quantity: product.getStockQuantity(),
+            reserved: product.getReservedQuantity(),
+          },
+        },
+      },
+      include: {
+        stock: true,
+      },
+    });
+
+    const { stock } = updatedProduct;
+
+    if (!updatedProduct || !stock) {
+      throw new Error('Failed to update product stock');
+    }
+
+    const stockEntity = new StockEntity(
+      stock.productId,
+      stock.quantity,
+      stock.reserved,
+      stock.updatedAt,
+    );
+
+    return new ProductEntity(
+      updatedProduct.id,
+      updatedProduct.name,
+      updatedProduct.description,
+      updatedProduct.price,
+      updatedProduct.deliveryPrice,
+      updatedProduct.taxPercentage,
+      updatedProduct.image,
+      stockEntity,
+      updatedProduct.createdAt,
+    );
   }
 }
