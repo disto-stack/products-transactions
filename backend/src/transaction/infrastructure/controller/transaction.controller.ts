@@ -5,6 +5,8 @@ import {
   BadRequestException,
   InternalServerErrorException,
   NotFoundException,
+  Patch,
+  Param,
 } from '@nestjs/common';
 import {
   CreateTransactionErrorType,
@@ -13,15 +15,31 @@ import {
 import { CreateTransactionDto } from '../../application/dto/create-transaction.dto';
 import { CreateTransactionResponseDto } from '../../application/dto/create-transaction-response.dto';
 import {
+  TransactionAlreadyProcessedError,
   TransactionInsufficientStockError,
+  TransactionNotFoundError,
   TransactionProductNotFoundError,
 } from '../../application/errors/transaction.errors';
 import { RepositoryError } from '../../../shared/application/errors/application.errors';
+import { ChangeTransactionDto } from '../../application/dto/change-transaction-status.dto';
+import { ApproveTransactionResponseDto } from '../../application/dto/approve-transaction-response.dto';
+import {
+  ApproveTransactionErrorType,
+  ApproveTransactionUseCase,
+} from '../../application/use-cases/approve-transaction.use-case';
+import {
+  DeclineTransactionErrorType,
+  DeclineTransactionUseCase,
+} from '../../application/use-cases/decline-transaction.use-case';
+import { DeclineTransactionResponseDto } from '../../application/dto/decline-transaction-response.dto';
 
 interface TransactionSuccessResponse {
   success: boolean;
   data: {
-    transaction: CreateTransactionResponseDto;
+    transaction:
+      | CreateTransactionResponseDto
+      | ApproveTransactionResponseDto
+      | DeclineTransactionResponseDto;
   };
 }
 
@@ -29,6 +47,8 @@ interface TransactionSuccessResponse {
 export class TransactionController {
   constructor(
     private readonly createTransactionUseCase: CreateTransactionUseCase,
+    private readonly approveTransactionUseCase: ApproveTransactionUseCase,
+    private readonly declineTransactionUseCase: DeclineTransactionUseCase,
   ) {}
 
   @Post()
@@ -49,7 +69,58 @@ export class TransactionController {
     };
   }
 
-  private handleError(error: CreateTransactionErrorType): never {
+  @Patch(':id/approve')
+  async approveTransaction(
+    @Param() approveDto: ChangeTransactionDto,
+  ): Promise<TransactionSuccessResponse> {
+    const result = await this.approveTransactionUseCase.execute(approveDto);
+
+    if (result.isFailure()) {
+      this.handleError(result.error);
+    }
+
+    return {
+      success: true,
+      data: {
+        transaction: result.value,
+      },
+    };
+  }
+
+  @Patch(':id/decline')
+  async declineTransaction(
+    @Param() declineDto: ChangeTransactionDto,
+  ): Promise<TransactionSuccessResponse> {
+    const result = await this.declineTransactionUseCase.execute(declineDto);
+
+    if (result.isFailure()) {
+      this.handleError(result.error);
+    }
+
+    return {
+      success: true,
+      data: {
+        transaction: result.value,
+      },
+    };
+  }
+
+  private handleError(
+    error:
+      | CreateTransactionErrorType
+      | ApproveTransactionErrorType
+      | DeclineTransactionErrorType,
+  ): never {
+    if (error instanceof TransactionNotFoundError) {
+      throw new NotFoundException({
+        success: false,
+        error: {
+          type: 'TRANSACTION_NOT_FOUND',
+          message: error.message,
+        },
+      });
+    }
+
     if (error instanceof TransactionProductNotFoundError) {
       throw new NotFoundException({
         success: false,
@@ -65,6 +136,16 @@ export class TransactionController {
         success: false,
         error: {
           type: 'INSUFFICIENT_STOCK',
+          message: error.message,
+        },
+      });
+    }
+
+    if (error instanceof TransactionAlreadyProcessedError) {
+      throw new BadRequestException({
+        success: false,
+        error: {
+          type: 'ALREADY_PROCESSED',
           message: error.message,
         },
       });

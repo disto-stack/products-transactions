@@ -71,8 +71,6 @@ export class CreateTransactionUseCase {
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(error);
-
       return failure(
         new RepositoryError(`Error creating transaction: ${message}`),
       );

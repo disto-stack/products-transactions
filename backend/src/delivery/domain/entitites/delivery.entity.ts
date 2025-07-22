@@ -13,13 +13,16 @@ export class DeliveryEntity {
     address: string,
     city: string,
     department: string,
+    createdAt?: Date,
+    updatedAt?: Date,
   ): DeliveryEntity {
     return new DeliveryEntity(
       transactionId,
       address,
       city,
       department,
-      new Date(),
+      createdAt || new Date(),
+      updatedAt || new Date(),
     );
   }
 

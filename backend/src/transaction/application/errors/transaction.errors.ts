@@ -28,3 +28,21 @@ export class TransactionInsufficientStockError extends Error {
     this.name = 'TransactionInsufficientStockError';
   }
 }
+
+export class TransactionAlreadyProcessedError extends Error {
+  readonly type = 'ALREADY_PROCESSED_ERROR';
+
+  constructor(transactionId: string, currentStatus: string) {
+    super(
+      `Transaction ${transactionId} is already processed with status: ${currentStatus}`,
+    );
+    this.name = 'TransactionAlreadyProcessedError';
+  }
+}
+
+export class DeliveryAlreadyExistsError extends Error {
+  constructor(transactionId: string) {
+    super(`Delivery already exists for transaction ${transactionId}`);
+    this.name = 'DeliveryAlreadyExistsError';
+  }
+}

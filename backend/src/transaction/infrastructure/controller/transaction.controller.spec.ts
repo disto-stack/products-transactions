@@ -19,14 +19,32 @@ import {
 import {
   TransactionProductNotFoundError,
   TransactionInsufficientStockError,
+  TransactionNotFoundError,
+  TransactionAlreadyProcessedError,
 } from '../../application/errors/transaction.errors';
+import { ApproveTransactionUseCase } from '../../application/use-cases/approve-transaction.use-case';
+import { ApproveTransactionResponseDto } from '../../application/dto/approve-transaction-response.dto';
+import { TransactionStatus } from '../../domain/enums/transaction-status.enum';
+import { ChangeTransactionDto } from '../../application/dto/change-transaction-status.dto';
+import { DeclineTransactionUseCase } from '../../application/use-cases/decline-transaction.use-case';
+import { DeclineTransactionResponseDto } from '../../application/dto/decline-transaction-response.dto';
 
 describe('TransactionController', () => {
   let controller: TransactionController;
-  let mockUseCase: jest.Mocked<CreateTransactionUseCase>;
+  let mockCreateTransactionUseCase: jest.Mocked<CreateTransactionUseCase>;
+  let mockApproveTransactionUseCase: jest.Mocked<ApproveTransactionUseCase>;
+  let mockDeclineTransactionUseCase: jest.Mocked<DeclineTransactionUseCase>;
 
   beforeEach(async () => {
-    mockUseCase = {
+    mockCreateTransactionUseCase = {
+      execute: jest.fn(),
+    } as any;
+
+    mockApproveTransactionUseCase = {
+      execute: jest.fn(),
+    } as any;
+
+    mockDeclineTransactionUseCase = {
       execute: jest.fn(),
     } as any;
 
@@ -35,7 +53,15 @@ describe('TransactionController', () => {
       providers: [
         {
           provide: CreateTransactionUseCase,
-          useValue: mockUseCase,
+          useValue: mockCreateTransactionUseCase,
+        },
+        {
+          provide: ApproveTransactionUseCase,
+          useValue: mockApproveTransactionUseCase,
+        },
+        {
+          provide: DeclineTransactionUseCase,
+          useValue: mockDeclineTransactionUseCase,
         },
       ],
     }).compile();
@@ -79,7 +105,9 @@ describe('TransactionController', () => {
         createdAt: new Date('2024-01-15T10:30:00.000Z'),
       };
 
-      mockUseCase.execute.mockResolvedValue(success(transactionResponseDto));
+      mockCreateTransactionUseCase.execute.mockResolvedValue(
+        success(transactionResponseDto),
+      );
 
       const result = await controller.createTransaction(createTransactionDto);
 
@@ -90,8 +118,10 @@ describe('TransactionController', () => {
         },
       });
 
-      expect(mockUseCase.execute).toHaveBeenCalledWith(createTransactionDto);
-      expect(mockUseCase.execute).toHaveBeenCalledTimes(1);
+      expect(mockCreateTransactionUseCase.execute).toHaveBeenCalledWith(
+        createTransactionDto,
+      );
+      expect(mockCreateTransactionUseCase.execute).toHaveBeenCalledTimes(1);
     });
 
     it('should handle different payment methods', async () => {
@@ -125,13 +155,19 @@ describe('TransactionController', () => {
         createdAt: new Date('2024-01-15T10:30:00.000Z'),
       };
 
-      mockUseCase.execute.mockResolvedValue(success(transactionResponseDto));
+      mockCreateTransactionUseCase.execute.mockResolvedValue(
+        success(transactionResponseDto),
+      );
 
       const result = await controller.createTransaction(createTransactionDto);
 
       expect(result.success).toBe(true);
-      expect(result.data.transaction.paymentMethod).toBe('PSE');
-      expect(mockUseCase.execute).toHaveBeenCalledWith(createTransactionDto);
+      expect(
+        (result.data.transaction as CreateTransactionResponseDto).paymentMethod,
+      ).toBe('PSE');
+      expect(mockCreateTransactionUseCase.execute).toHaveBeenCalledWith(
+        createTransactionDto,
+      );
     });
   });
 
@@ -149,7 +185,9 @@ describe('TransactionController', () => {
       const productNotFoundError = new TransactionProductNotFoundError(
         'non-existent-product',
       );
-      mockUseCase.execute.mockResolvedValue(failure(productNotFoundError));
+      mockCreateTransactionUseCase.execute.mockResolvedValue(
+        failure(productNotFoundError),
+      );
 
       await expect(
         controller.createTransaction(createTransactionDto),
@@ -185,7 +223,9 @@ describe('TransactionController', () => {
         10,
         5,
       );
-      mockUseCase.execute.mockResolvedValue(failure(insufficientStockError));
+      mockCreateTransactionUseCase.execute.mockResolvedValue(
+        failure(insufficientStockError),
+      );
 
       await expect(
         controller.createTransaction(createTransactionDto),
@@ -218,7 +258,9 @@ describe('TransactionController', () => {
       };
 
       const repositoryError = new RepositoryError('Database connection failed');
-      mockUseCase.execute.mockResolvedValue(failure(repositoryError));
+      mockCreateTransactionUseCase.execute.mockResolvedValue(
+        failure(repositoryError),
+      );
 
       await expect(
         controller.createTransaction(createTransactionDto),
@@ -250,7 +292,9 @@ describe('TransactionController', () => {
       };
 
       const unexpectedError = new UnexpectedError('Something went wrong');
-      mockUseCase.execute.mockResolvedValue(failure(unexpectedError));
+      mockCreateTransactionUseCase.execute.mockResolvedValue(
+        failure(unexpectedError),
+      );
 
       await expect(
         controller.createTransaction(createTransactionDto),
@@ -269,10 +313,211 @@ describe('TransactionController', () => {
           },
         });
 
-        // ✅ Verify that unexpected error details are not exposed
         expect(error.response.error.message).not.toContain(
           'Something went wrong',
         );
+      }
+    });
+  });
+
+  describe('approveTransaction - success cases', () => {
+    it('should return success response when transaction is approved', async () => {
+      const approveTransactionDto: ChangeTransactionDto = {
+        id: 'transaction_id',
+      };
+
+      const transactionResponseDto: ApproveTransactionResponseDto = {
+        transaction: {
+          id: 'transaction_id',
+          status: TransactionStatus.APPROVED,
+        },
+      };
+
+      mockApproveTransactionUseCase.execute.mockResolvedValue(
+        success(transactionResponseDto),
+      );
+
+      const result = await controller.approveTransaction(approveTransactionDto);
+
+      expect(result).toEqual({
+        success: true,
+        data: {
+          transaction: transactionResponseDto,
+        },
+      });
+
+      expect(mockApproveTransactionUseCase.execute).toHaveBeenCalledWith(
+        approveTransactionDto,
+      );
+      expect(mockApproveTransactionUseCase.execute).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('approveTransaction - error cases', () => {
+    it('should throw NotFoundException for transaction not found errors', async () => {
+      const approveTransactionDto: ChangeTransactionDto = {
+        id: 'transaction_id',
+      };
+
+      const transactionNotFoundError = new TransactionNotFoundError(
+        'non-existent-transaction',
+      );
+      mockApproveTransactionUseCase.execute.mockResolvedValue(
+        failure(transactionNotFoundError),
+      );
+
+      await expect(
+        controller.approveTransaction(approveTransactionDto),
+      ).rejects.toThrow(NotFoundException);
+
+      try {
+        await controller.approveTransaction(approveTransactionDto);
+        fail('Should have thrown NotFoundException');
+      } catch (error) {
+        expect(error).toBeInstanceOf(NotFoundException);
+        expect(error.response).toMatchObject({
+          success: false,
+          error: {
+            type: 'TRANSACTION_NOT_FOUND',
+            message:
+              'Transaction with identifier non-existent-transaction not found',
+          },
+        });
+      }
+    });
+
+    it('should throw BadRequestException for already processed', async () => {
+      const approveTransactionDto: ChangeTransactionDto = {
+        id: 'transaction_id',
+      };
+
+      const transactionAlreadyProcessedError =
+        new TransactionAlreadyProcessedError(
+          'already-processed-transaction',
+          'APPROVED',
+        );
+      mockApproveTransactionUseCase.execute.mockResolvedValue(
+        failure(transactionAlreadyProcessedError),
+      );
+
+      await expect(
+        controller.approveTransaction(approveTransactionDto),
+      ).rejects.toThrow(BadRequestException);
+
+      try {
+        await controller.approveTransaction(approveTransactionDto);
+        fail('Should have thrown BadRequestException');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error.response).toMatchObject({
+          success: false,
+          error: {
+            type: 'ALREADY_PROCESSED',
+            message:
+              'Transaction already-processed-transaction is already processed with status: APPROVED',
+          },
+        });
+      }
+    });
+  });
+
+  describe('declineTransaction - success cases', () => {
+    it('should return success response when transaction is declined', async () => {
+      const declineTransactionDto: ChangeTransactionDto = {
+        id: 'transaction_id',
+      };
+
+      const transactionResponseDto: DeclineTransactionResponseDto = {
+        transaction: {
+          id: 'transaction_id',
+          status: TransactionStatus.DECLINED,
+        },
+      };
+
+      mockDeclineTransactionUseCase.execute.mockResolvedValue(
+        success(transactionResponseDto),
+      );
+
+      const result = await controller.declineTransaction(declineTransactionDto);
+
+      expect(result).toEqual({
+        success: true,
+        data: {
+          transaction: transactionResponseDto,
+        },
+      });
+
+      expect(mockDeclineTransactionUseCase.execute).toHaveBeenCalledWith(
+        declineTransactionDto,
+      );
+      expect(mockDeclineTransactionUseCase.execute).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('approveTransaction - error cases', () => {
+    it('should throw NotFoundException for transaction not found errors', async () => {
+      const declineTransactionDto: ChangeTransactionDto = {
+        id: 'transaction_id',
+      };
+
+      const transactionNotFoundError = new TransactionNotFoundError(
+        'non-existent-transaction',
+      );
+      mockDeclineTransactionUseCase.execute.mockResolvedValue(
+        failure(transactionNotFoundError),
+      );
+
+      await expect(
+        controller.declineTransaction(declineTransactionDto),
+      ).rejects.toThrow(NotFoundException);
+
+      try {
+        await controller.declineTransaction(declineTransactionDto);
+        fail('Should have thrown NotFoundException');
+      } catch (error) {
+        expect(error).toBeInstanceOf(NotFoundException);
+        expect(error.response).toMatchObject({
+          success: false,
+          error: {
+            type: 'TRANSACTION_NOT_FOUND',
+            message:
+              'Transaction with identifier non-existent-transaction not found',
+          },
+        });
+      }
+    });
+
+    it('should throw BadRequestException for already processed', async () => {
+      const declineTransactionDto: ChangeTransactionDto = {
+        id: 'transaction_id',
+      };
+
+      const transactionAlreadyProcessedError =
+        new TransactionAlreadyProcessedError(
+          'non-existent-transaction',
+          'DECLINED',
+        );
+      mockDeclineTransactionUseCase.execute.mockResolvedValue(
+        failure(transactionAlreadyProcessedError),
+      );
+
+      await expect(
+        controller.declineTransaction(declineTransactionDto),
+      ).rejects.toThrow(BadRequestException);
+
+      try {
+        await controller.declineTransaction(declineTransactionDto);
+        fail('Should have thrown BadRequestException');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error.response).toMatchObject({
+          success: false,
+          error: {
+            type: 'ALREADY_PROCESSED',
+            message:
+              'Transaction non-existent-transaction is already processed with status: DECLINED',
+          },
+        });
       }
     });
   });

@@ -83,6 +83,7 @@
       "node_modules",
       "\\.module\\.ts$",
       "\\.dto\\.ts$",
+      "\\.errors\\.ts$",
       "interfaces/",
       "main.ts"
     ],

@@ -30,6 +30,8 @@ describe('CreateTransactionUseCase', () => {
   beforeEach(async () => {
     mockTransactionRepository = {
       save: jest.fn(),
+      update: jest.fn(),
+      findById: jest.fn(),
     };
 
     mockProductRepository = {

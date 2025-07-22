@@ -194,6 +194,7 @@ export class ProductEntity {
     reservedStock?: number,
   ): ProductEntity {
     const stock = new StockEntity(id, initialStock, reservedStock);
+
     return new ProductEntity(
       id,
       name,

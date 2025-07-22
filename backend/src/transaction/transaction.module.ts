@@ -6,12 +6,16 @@ import { PrismaProductRepositoryImpl } from '../product/infrastructure/adapters/
 import { PrismaCustomerRepositoryImpl } from '../customer/infrastructure/adapters/prisma-customer.repository.impl';
 import { PrismaModule } from '../shared/prisma/prisma.module';
 import { UuidIdGenerator } from '../shared/infrastructure/adapters/uuid-id-generator';
+import { ApproveTransactionUseCase } from './application/use-cases/approve-transaction.use-case';
+import { DeclineTransactionUseCase } from './application/use-cases/decline-transaction.use-case';
 
 @Module({
   imports: [PrismaModule],
   controllers: [TransactionController],
   providers: [
     CreateTransactionUseCase,
+    ApproveTransactionUseCase,
+    DeclineTransactionUseCase,
     {
       provide: 'TransactionRepository',
       useClass: PrismaTransactionRepositoryImpl,
