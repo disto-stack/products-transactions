@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaDeliveryRepositoryImpl } from './prisma-delivery.repository.impl';
 import { PrismaService } from '../../../shared/prisma/prisma.service';
-import { DeliveryEntity } from '../../domain/entitites/delivery.entity';
+import { DeliveryEntity } from '../../domain/entities/delivery.entity';
 
 const prismaServiceMock = {
   delivery: {

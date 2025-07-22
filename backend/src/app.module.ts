@@ -8,7 +8,13 @@ import { TransactionModule } from './transaction/transaction.module';
 import { DeliveryModule } from './delivery/delivery.module';
 
 @Module({
-  imports: [CustomerModule, PrismaModule, ProductModule, TransactionModule, DeliveryModule],
+  imports: [
+    CustomerModule,
+    PrismaModule,
+    ProductModule,
+    TransactionModule,
+    DeliveryModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

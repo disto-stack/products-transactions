@@ -39,10 +39,3 @@ export class TransactionAlreadyProcessedError extends Error {
     this.name = 'TransactionAlreadyProcessedError';
   }
 }
-
-export class DeliveryAlreadyExistsError extends Error {
-  constructor(transactionId: string) {
-    super(`Delivery already exists for transaction ${transactionId}`);
-    this.name = 'DeliveryAlreadyExistsError';
-  }
-}
