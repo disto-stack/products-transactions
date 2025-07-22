@@ -5,11 +5,13 @@ import { ChangeTransactionDto } from '../dto/change-transaction-status.dto';
 import {
   TransactionNotFoundError,
   TransactionAlreadyProcessedError,
+  TransactionProductNotFoundError,
 } from '../errors/transaction.errors';
 import { Result, success, failure } from '../../../shared/result';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { RepositoryError } from '../../../shared/application/errors/application.errors';
 import { DeclineTransactionResponseDto } from '../dto/decline-transaction-response.dto';
+import { ProductRepository } from '../../../product/domain/ports/product.repository';
 
 export type DeclineTransactionErrorType =
   | TransactionNotFoundError
@@ -21,6 +23,8 @@ export class DeclineTransactionUseCase {
   constructor(
     @Inject('TransactionRepository')
     private readonly transactionRepository: TransactionRepository,
+    @Inject('ProductRepository')
+    private readonly productRepository: ProductRepository,
   ) {}
 
   async execute(
@@ -40,6 +44,11 @@ export class DeclineTransactionUseCase {
       const declinedTransaction = transaction.value.decline();
       const savedTransaction =
         await this.transactionRepository.update(declinedTransaction);
+
+      const releaseProductStock = await this.releaseStock(transaction.value);
+      if (releaseProductStock.isFailure()) {
+        return releaseProductStock;
+      }
 
       return success(this.mapToResponseDto(savedTransaction));
     } catch (error) {
@@ -70,6 +79,29 @@ export class DeclineTransactionUseCase {
           transaction.status,
         ),
       );
+    }
+
+    return success(undefined);
+  }
+
+  private async releaseStock(transaction: TransactionEntity) {
+    const product = await this.productRepository.findById(
+      transaction.productId,
+    );
+
+    if (!product)
+      return failure(
+        new TransactionProductNotFoundError(transaction.productId),
+      );
+
+    const updatedProductStock = product.releaseReservation(
+      transaction.productQuantity,
+    );
+
+    const updatedProduct =
+      await this.productRepository.updateStock(updatedProductStock);
+    if (!updatedProduct) {
+      return failure(new RepositoryError('Failed to update product stock'));
     }
 
     return success(undefined);

@@ -10,10 +10,14 @@ import {
 import { RepositoryError } from '../../../shared/application/errors/application.errors';
 import { TransactionStatus } from '../../domain/enums/transaction-status.enum';
 import { PaymentMethod } from '../dto/create-transaction.dto';
+import { ProductRepository } from '../../../product/domain/ports/product.repository';
+import { ProductEntity } from '../../../product/domain/entities/product.entity';
+import { StockEntity } from '../../../product/domain/entities/stock.entity';
 
 describe('ApproveTransactionUseCase', () => {
   let useCase: ApproveTransactionUseCase;
   let mockTransactionRepository: jest.Mocked<TransactionRepository>;
+  let mockProductRepository: jest.Mocked<ProductRepository>;
 
   beforeEach(async () => {
     mockTransactionRepository = {
@@ -22,12 +26,21 @@ describe('ApproveTransactionUseCase', () => {
       findById: jest.fn(),
     };
 
+    mockProductRepository = {
+      findById: jest.fn(),
+      updateStock: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ApproveTransactionUseCase,
         {
           provide: 'TransactionRepository',
           useValue: mockTransactionRepository,
+        },
+        {
+          provide: 'ProductRepository',
+          useValue: mockProductRepository,
         },
       ],
     }).compile();
@@ -79,6 +92,19 @@ describe('ApproveTransactionUseCase', () => {
       new Date('2024-01-15T11:00:00.000Z'),
     );
 
+    const mockStock = new StockEntity('product-test-id', 10, 5);
+
+    const mockProduct = new ProductEntity(
+      'product-test-id',
+      'Test Product',
+      'Test Description',
+      10000,
+      20000,
+      19,
+      null,
+      mockStock,
+    );
+
     it('should approve transaction successfully when transaction is pending', async () => {
       mockTransactionRepository.findById.mockResolvedValue(
         mockPendingTransaction,
@@ -86,6 +112,9 @@ describe('ApproveTransactionUseCase', () => {
       mockTransactionRepository.update.mockResolvedValue(
         mockApprovedTransaction,
       );
+
+      mockProductRepository.findById.mockResolvedValue(mockProduct);
+      mockProductRepository.updateStock.mockResolvedValue(mockProduct);
 
       const result = await useCase.execute(ChangeTransactionDto);
 
@@ -112,8 +141,24 @@ describe('ApproveTransactionUseCase', () => {
         }),
       );
 
+      expect(mockProductRepository.findById).toHaveBeenCalledWith(
+        'product-test-id',
+      );
+
+      expect(mockProductRepository.updateStock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'product-test-id',
+          stock: expect.objectContaining({
+            quantity: 8,
+            reserved: 3,
+          }),
+        }),
+      );
+
       expect(mockTransactionRepository.findById).toHaveBeenCalledTimes(1);
       expect(mockTransactionRepository.update).toHaveBeenCalledTimes(1);
+      expect(mockProductRepository.findById).toHaveBeenCalledTimes(1);
+      expect(mockProductRepository.updateStock).toHaveBeenCalledTimes(1);
     });
   });
 
