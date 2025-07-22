@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(255)
+  email     String   @unique @db.VarChar(255)
+  phone     String   @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  transactions Transaction[]
+
+  @@map("customers")
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  name          String
+  description   String
+  price         Int
+  taxPercentage Float    @default(0.0) @map("tax_percentage")
+  deliveryPrice Int      @default(0) @map("delivery_price")
+  image         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  stock Stock?
+
+  transactions Transaction[]
+
+  @@map("products")
+}
+
+model Stock {
+  productId String   @id @unique @map("product_id")
+  quantity  Int
+  reserved  Int      @default(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("stocks")
+}
+
+model Transaction {
+  id              String            @id @default(cuid())
+  status          TransactionStatus
+  productId       String
+  productQuantity Int
+  totalAmount     Int
+  customerId      String
+  paymentMethod   PaymentMethod
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  product  Product  @relation(fields: [productId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  delivery Delivery?
+
+  @@map("transactions")
+}
+
+enum TransactionStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  PSE
+}
+
+model Delivery {
+  transactionId String   @id @map("transaction_id")
+  address       String
+  city          String
+  department    String
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+
+  @@map("deliveries")
+}
