@@ -63,6 +63,8 @@ model Transaction {
   product  Product  @relation(fields: [productId], references: [id])
   customer Customer @relation(fields: [customerId], references: [id])
 
+  delivery Delivery?
+
   @@map("transactions")
 }
 
@@ -76,4 +78,17 @@ enum PaymentMethod {
   CREDIT_CARD
   DEBIT_CARD
   PSE
+}
+
+model Delivery {
+  transactionId String   @id @map("transaction_id")
+  address       String
+  city          String
+  department    String
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+
+  @@map("deliveries")
 }
